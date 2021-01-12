@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<style type="text/css">
+		body {
+			background: #0F0;
+			margin: 0;
+			padding: 0;
+		}
+		body > div * {
+			position: absolute;
+		}
+		@keyframes smoke {
+			from {
+				opacity: 0;
+			}
+			to {
+				opacity: 1;
+			}
+		}
+		#Smoke {
+			z-index: 1500;
+			opacity: 0;
+			transition: opacity 0.5s;
+		}
+		#Button1, #Button2, #Button3, #Button4, #Button5, #Button6 {
+			display: none;
+		}
+		#RightPawDown {
+			z-index: 1000;
+		}
+		#LeftPawDown, #LeftPawUp {
+			z-index: 2000;
+		}
+		#StickUp, #StickUpRight, #StickRight,
+		#StickDownRight, #StickDown, #StickDownLeft,
+		#StickLeft, #StickUpLeft {
+			display: none;
+		}
+		#Container {
+			border: 8px solid;
+			border-top: none;
+			border-radius: 50px;
+			position: relative;
+			width: 612px;
+			height: 354px;
+			left: 5px;
+			top: 5px;
+			overflow: hidden;
+		}
+		#Mask1 {
+			z-index: 1000;
+			background: #0F0;
+			position: absolute;
+			width: 118px;
+			left: -10px;
+			height: 160px;
+			transform: rotate(8deg);
+		}
+		#Mask2 {
+			z-index: 1000;
+			background: #0F0;
+			position: absolute;
+			width: 119px;
+			left: 561px;
+			height: 260px;
+			transform: rotate(11deg);
+		}
+	</style>
+</head>
+<body>
+	<div id="Mask1"></div>
+	<div id="Mask2"></div>
+	<div id="Container">
+		<img id="Smoke" src="img/smoke.png"></img>
+		<img id="Background" src="img/bg.png"></img>
+		<img id="RightPawUp" src="img/rightup.png"></img>
+		<img id="LeftPawUp" src="img/leftup.png"></img>
+		<canvas id="RightPawDown" width="612" height="354"></canvas>
+		<canvas id="LeftPawDown" width="612" height="354"></canvas>
+		<img src="img/base.png"></img>
+		<img src="img/buttons.png"></img>
+
+		<img id="Button1" src="img/b1.png"></img>
+		<img id="Button2" src="img/b2.png"></img>
+		<img id="Button3" src="img/b3.png"></img>
+		<img id="Button4" src="img/b4.png"></img>
+		<img id="Button5" src="img/b5.png"></img>
+		<img id="Button6" src="img/b6.png"></img>
+
+		<img id="StickNeutral" src="img/stick1.png"></img>
+		<img id="StickUp" src="img/stick2.png"></img>
+		<img id="StickUpRight" src="img/stick3.png"></img>
+		<img id="StickRight" src="img/stick4.png"></img>
+		<img id="StickDownRight" src="img/stick5.png"></img>
+		<img id="StickDown" src="img/stick6.png"></img>
+		<img id="StickDownLeft" src="img/stick7.png"></img>
+		<img id="StickLeft" src="img/stick8.png"></img>
+		<img id="StickUpLeft" src="img/stick9.png"></img>
+	</div>
+</body>
+<script>
+	//Right/Left/Up/Down are from bongocat's viewpoint!
+	let rpu = document.getElementById("RightPawUp");
+	let lpu = document.getElementById("LeftPawUp");
+	let rpd = document.getElementById("RightPawDown");
+	let lpd = document.getElementById("LeftPawDown");
+
+	//Canvas things
+	let rpdctx = rpd.getContext("2d");
+	let lpdctx = lpd.getContext("2d");
+
+	//Stick
+	let StickNeutral = document.getElementById("StickNeutral");
+	let StickUp = document.getElementById("StickUp");
+	let StickDown = document.getElementById("StickDown");
+	let StickLeft = document.getElementById("StickLeft");
+	let StickRight = document.getElementById("StickRight");
+	let StickUpRight = document.getElementById("StickUpRight");
+	let StickUpLeft = document.getElementById("StickUpLeft");
+	let StickDownLeft = document.getElementById("StickDownLeft");
+	let StickDownRight = document.getElementById("StickDownRight");
+
+	//Buttons
+	let Button1 = document.getElementById("Button1");
+	let Button2 = document.getElementById("Button2");
+	let Button3 = document.getElementById("Button3");
+	let Button4 = document.getElementById("Button4");
+	let Button5 = document.getElementById("Button5");
+	let Button6 = document.getElementById("Button6");
+
+	//Extra
+	let Smoke = document.getElementById("Smoke");
+	let SmokeTimeout = 2000;
+	let SmokeTimer = null;
+
+	//Gamepads
+	let connected = null;
+	let buttons = {};
+
+	let pawCurves = {
+		//Right hand
+		0: [110,190, 310,310, 220,160],
+		1: [110,190, 180,290, 220,160],
+		7: [ 90,190,  50,260, 220,160],
+
+		2: [110,190, 290,370, 220,160],
+		3: [110,190, 160,350, 220,160],
+		5: [ 90,190,  40,320, 220,160],
+
+		//Left hand
+		12: [290,260, 370,300, 465,200],
+		13: [300,260, 390,270, 465,200],
+		14: [360,250, 390,290, 465,200],
+		15: [250,230, 350,290, 465,200],
+		"n": [290,240, 390,280, 465,200],
+		"ur": [275,245, 350,290, 465,200],
+		"ul": [310,260, 390,290, 465,200],
+		"dr": [270,240, 390,280, 465,200],
+		"dl": [320,260, 410,270, 465,200],
+	}
+
+	let RPSpeed = 0.7;
+	let RPReleaseTimeout = 50;
+	let RPReleaseTimer = null;
+	let currentRPCurve = null;
+	let currentRPCurveTarget = null;
+
+	let LPSpeed = 0.7;
+	let LPReleaseTimeout = 1000;
+	let LPReleaseTimer = null;
+	let currentLPCurve = null;
+	let currentLPCurveTarget = null;
+
+	window.addEventListener("gamepadconnected", function(e) {
+		connected = window.navigator.getGamepads()[e.gamepad.index];
+		console.log("Gamepad connected");
+	});
+
+	function pollGamepadButtons() {
+		requestAnimationFrame(pollGamepadButtons);
+		if(!connected) {
+			return;
+		}
+		buttons = window.navigator.getGamepads()[0].buttons;
+
+		selectStickState();
+		selectButtonsState();
+		selectSmokeState();
+		selectRPTarget();
+		selectLPTarget();
+
+		adjustRPCurve();
+		adjustLPCurve();
+
+		drawRPD(currentRPCurve);
+		drawLPD(currentLPCurve);
+
+	}
+	requestAnimationFrame(pollGamepadButtons);
+
+	function selectSmokeState() {
+		console.log(buttons.map((e,i) => i+":"+e.pressed));
+		if(buttons[4].pressed) {
+			Smoke.style.opacity = 1;
+			if(SmokeTimer) {
+				clearTimeout(SmokeTimer);
+				SmokeTimer = null;
+			}
+		} else {
+			if(!SmokeTimer) {
+				SmokeTimer = setTimeout(() => {
+					Smoke.style.opacity = 0;
+				}, SmokeTimeout);
+			}
+		}
+	}
+
+	function adjustRPCurve() {
+		if(!currentRPCurve) {
+			currentRPCurve = currentRPCurveTarget;
+			return;
+		}
+
+		for(let i = 0; i < currentRPCurve.length; i++) {
+			currentRPCurve[i] = currentRPCurve[i] + (currentRPCurveTarget[i] - currentRPCurve[i]) * RPSpeed;
+		}
+	}
+
+	function adjustLPCurve() {
+		if(!currentLPCurve) {
+			currentLPCurve = currentLPCurveTarget;
+			return;
+		}
+
+		for(let i = 0; i < currentLPCurve.length; i++) {
+			currentLPCurve[i] = currentLPCurve[i] + (currentLPCurveTarget[i] - currentLPCurve[i]) * LPSpeed;
+		}
+	}
+
+	function selectStickState() {
+		StickUp.style.display = "none";
+		StickDown.style.display = "none";
+		StickLeft.style.display = "none";
+		StickRight.style.display = "none";
+		StickUpLeft.style.display = "none";
+		StickUpRight.style.display = "none";
+		StickNeutral.style.display = "none";
+		StickDownLeft.style.display = "none";
+		StickDownRight.style.display = "none";
+
+		if(buttons[12].pressed && buttons[14].pressed) {
+			StickUpLeft.style.display = "block";
+		} else if(buttons[12].pressed && buttons[15].pressed) {
+			StickUpRight.style.display = "block";
+		} else if(buttons[13].pressed && buttons[14].pressed) {
+			StickDownLeft.style.display = "block";
+		} else if(buttons[13].pressed && buttons[15].pressed) {
+			StickDownRight.style.display = "block";
+		} else if(buttons[12].pressed) {
+			StickUp.style.display = "block";
+		} else if(buttons[13].pressed) {
+			StickDown.style.display = "block";
+		} else if(buttons[14].pressed) {
+			StickLeft.style.display = "block";
+		} else if(buttons[15].pressed) {
+			StickRight.style.display = "block";
+		} else {
+			StickNeutral.style.display = "block";
+		}
+	}
+
+	function selectButtonsState() {
+		Button1.style.display = "none";
+		Button2.style.display = "none";
+		Button3.style.display = "none";
+		Button4.style.display = "none";
+		Button5.style.display = "none";
+		Button6.style.display = "none";
+
+		let pressed = false;
+		if(buttons[0].pressed) {
+			Button4.style.display = "block";
+		}
+		if(buttons[1].pressed) {
+			Button5.style.display = "block";
+		}
+		if(buttons[7].pressed) {
+			Button6.style.display = "block";
+		}
+		if(buttons[2].pressed) {
+			Button1.style.display = "block";
+		}
+		if(buttons[3].pressed) {
+			Button2.style.display = "block";
+		}
+		if(buttons[5].pressed) {
+			Button3.style.display = "block";
+		}
+	}
+
+	function selectRPTarget() {
+		let countPressed = 0;
+		let arraySum = [0,0, 0,0, 0,0];
+
+		//Sum bezier curves
+		if(buttons[0].pressed) {
+			for(let i = 0; i < arraySum.length; i++) {
+				arraySum[i] += pawCurves[0][i];
+			}
+			countPressed++;
+		}
+		if(buttons[1].pressed) {
+			for(let i = 0; i < arraySum.length; i++) {
+				arraySum[i] += pawCurves[1][i];
+			}
+			countPressed++;
+		}
+		if(buttons[7].pressed) {
+			for(let i = 0; i < arraySum.length; i++) {
+				arraySum[i] += pawCurves[7][i];
+			}
+			countPressed++;
+		}
+		if(buttons[2].pressed) {
+			for(let i = 0; i < arraySum.length; i++) {
+				arraySum[i] += pawCurves[2][i];
+			}
+			countPressed++;
+		}
+		if(buttons[3].pressed) {
+			for(let i = 0; i < arraySum.length; i++) {
+				arraySum[i] += pawCurves[3][i];
+			}
+			countPressed++;
+		}
+		if(buttons[5].pressed) {
+			for(let i = 0; i < arraySum.length; i++) {
+				arraySum[i] += pawCurves[5][i];
+			}
+			countPressed++;
+		}
+
+		//Average values and set minimum hold timer
+		if(countPressed > 0) {
+			for(let i = 0; i < arraySum.length; i++) {
+				arraySum[i] = Math.floor(arraySum[i] / countPressed);
+			}
+			currentRPCurveTarget = arraySum;
+			if(RPReleaseTimer) {
+				clearTimeout(RPReleaseTimer);
+				RPReleaseTimer = null;
+			}
+		} else {
+			if(!RPReleaseTimer) {
+				RPReleaseTimer = setTimeout(() => {
+					currentRPCurve = null;
+					currentRPCurveTarget = null;
+				}, RPReleaseTimeout);
+			}
+		}
+	}
+
+	function selectLPTarget() {
+		let countPressed = 0;
+		let arraySum = [0,0, 0,0, 0,0];
+
+		//Sum bezier curves
+		if(buttons[12].pressed && buttons[14].pressed) {
+			for(let i = 0; i < arraySum.length; i++) {
+				arraySum[i] += pawCurves["ul"][i];
+			}
+			countPressed++;
+		} else if(buttons[12].pressed && buttons[15].pressed) {
+			for(let i = 0; i < arraySum.length; i++) {
+				arraySum[i] += pawCurves["ur"][i];
+			}
+			countPressed++;
+		} else if(buttons[13].pressed && buttons[14].pressed) {
+			for(let i = 0; i < arraySum.length; i++) {
+				arraySum[i] += pawCurves["dl"][i];
+			}
+			countPressed++;
+		} else if(buttons[13].pressed && buttons[15].pressed) {
+			for(let i = 0; i < arraySum.length; i++) {
+				arraySum[i] += pawCurves["dr"][i];
+			}
+			countPressed++;
+		} else if(buttons[12].pressed) {
+			for(let i = 0; i < arraySum.length; i++) {
+				arraySum[i] += pawCurves[12][i];
+			}
+			countPressed++;
+		} else if(buttons[13].pressed) {
+			for(let i = 0; i < arraySum.length; i++) {
+				arraySum[i] += pawCurves[13][i];
+			}
+			countPressed++;
+		} else if(buttons[14].pressed) {
+			for(let i = 0; i < arraySum.length; i++) {
+				arraySum[i] += pawCurves[14][i];
+			}
+			countPressed++;
+		} else if(buttons[15].pressed) {
+			for(let i = 0; i < arraySum.length; i++) {
+				arraySum[i] += pawCurves[15][i];
+			}
+			countPressed++;
+		}
+
+		if(countPressed === 0) {
+			if(!LPReleaseTimer) {
+				if(currentLPCurveTarget) {
+					currentLPCurveTarget = pawCurves["n"]; //Set to Neutral
+				}
+				LPReleaseTimer = setTimeout(() => {
+					currentLPCurve = null;
+					currentLPCurveTarget = null;
+				}, LPReleaseTimeout);
+			}
+		} else {
+			//Average values, possible 2
+			for(let i = 0; i < arraySum.length; i++) {
+				arraySum[i] = Math.floor(arraySum[i] / countPressed);
+			}
+			currentLPCurveTarget = arraySum;
+			if(LPReleaseTimer) {
+				clearTimeout(LPReleaseTimer);
+				LPReleaseTimer = null;
+			}
+		}
+	}
+
+	function drawRPD(curve) {
+		if(!curve) {
+			//Draw hand up
+			rpu.style.display = "block";
+			rpd.style.display = "none";
+			return;
+		}
+
+		rpu.style.display = "none";
+		rpd.style.display = "block";
+
+		rpdctx.clearRect(0, 0, rpdctx.canvas.width, rpdctx.canvas.height);
+		rpdctx.lineWidth = 6;
+		rpdctx.fillStyle = "white";
+		rpdctx.lineCap = "round";
+		rpdctx.beginPath();
+		rpdctx.moveTo(177, 104);
+		rpdctx.bezierCurveTo(...curve);
+		rpdctx.fill();
+		rpdctx.stroke();
+	}
+
+	function drawLPD(curve) {
+		if(!curve) {
+			//Draw hand up
+			lpu.style.display = "block";
+			lpd.style.display = "none";
+			return;
+		}
+		lpu.style.display = "none";
+		lpd.style.display = "block";
+
+		lpdctx.clearRect(0, 0, lpdctx.canvas.width, lpdctx.canvas.height);
+		lpdctx.lineWidth = 6;
+		lpdctx.fillStyle = "white";
+		lpdctx.lineCap = "round";
+		lpdctx.beginPath();
+		lpdctx.moveTo(360,200);
+		lpdctx.bezierCurveTo(...curve);
+
+		lpdctx.fill();
+		lpdctx.stroke();
+	}
+
+
+</script>
+</html>
