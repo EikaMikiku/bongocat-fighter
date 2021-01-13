@@ -204,17 +204,48 @@
 	var currentLPCurve = null;
 	var currentLPCurveTarget = null;
 
+	readConfig();
+
 	window.addEventListener("gamepadconnected", function(e) {
 			connected = window.navigator.getGamepads()[e.gamepad.index];
 			console.log("Gamepad " + e.gamepad.index + " connected");
 			});
+
+	// gamepad index can be configured in url with "gamepad=idx"
+	// buttons can be configured in url with comma-separated indices,
+	// "buttons=u,d,l,r,1,2,3,4,5,6,smoke"
+	function readConfig() {
+		var config = window.location.search;
+		let gamepadMatch = config.match(/[?&]gamepad=(\d+)/);
+		let buttonsMatch = config.match(/[?&]buttons=([\d,]+)/);
+		if (gamepadMatch) {
+			gamepadIdx = Number.parseInt(gamepadMatch[1]);
+		}
+		if (buttonsMatch) {
+			var buttonStrings = buttonsMatch[1].split(",");
+			if (buttonStrings.length == 11) {
+				upButtonIdx = Number.parseInt(buttonStrings[0], 10);
+				downButtonIdx = Number.parseInt(buttonStrings[1], 10);
+				leftButtonIdx = Number.parseInt(buttonStrings[2], 10);
+				rightButtonIdx = Number.parseInt(buttonStrings[3], 10);
+				smokeButtonIdx = Number.parseInt(buttonStrings[10], 10);
+				for(var i = 0; i < buttonIdx.length; i++) {
+					buttonIdx[i] = Number.parseInt(buttonStrings[i + 4], 10);
+				}
+			}
+		}
+	}
 
 	function pollGamepadButtons() {
 		requestAnimationFrame(pollGamepadButtons);
 		if(!connected) {
 			return;
 		}
-		buttons = window.navigator.getGamepads()[gamepadIdx].buttons;
+		var gamepads = window.navigator.getGamepads();
+		if (gamepadIdx >= gamepads.length) {
+			return;
+		}
+		buttons = gamepads[gamepadIdx].buttons;
 		direction = getStickDirection();
 
 		selectStickState();
