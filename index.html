@@ -10,14 +10,6 @@
 		body > div * {
 			position: absolute;
 		}
-		@keyframes smoke {
-			from {
-				opacity: 0;
-			}
-			to {
-				opacity: 1;
-			}
-		}
 		#Smoke {
 			z-index: 1500;
 			opacity: 0;
@@ -207,9 +199,9 @@
 	readConfig();
 
 	window.addEventListener("gamepadconnected", function(e) {
-			connected = window.navigator.getGamepads()[e.gamepad.index];
-			console.log("Gamepad " + e.gamepad.index + " connected");
-			});
+		connected = window.navigator.getGamepads()[e.gamepad.index];
+		console.log("Gamepad " + e.gamepad.index + " connected");
+	});
 
 	// gamepad index can be configured in url with "gamepad=idx"
 	// buttons can be configured in url with comma-separated indices,
@@ -246,6 +238,18 @@
 			return;
 		}
 		buttons = gamepads[gamepadIdx].buttons;
+
+		//Logging which buttons are pressed in the console
+		var btnStr = "";
+		for(var i = 0; i < buttons.length; i++) {
+			if(buttons[i].pressed) {
+				btnStr += i + ": pressed\t";
+			}
+		}
+		if(btnStr.length > 0) {
+			console.log(btnStr);
+		}
+
 		direction = getStickDirection();
 
 		selectStickState();
