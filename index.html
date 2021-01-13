@@ -3,7 +3,7 @@
 <head>
 	<style type="text/css">
 		body {
-			background: #0F0;
+			background: rgba(0,0,0,0);
 			margin: 0;
 			padding: 0;
 		}
@@ -38,9 +38,11 @@
 			display: none;
 		}
 		#Container {
+			/*
 			border: 8px solid;
 			border-top: none;
 			border-radius: 50px;
+			*/
 			position: relative;
 			width: 612px;
 			height: 354px;
@@ -49,6 +51,7 @@
 			overflow: hidden;
 		}
 		#Mask1 {
+			display: none;
 			z-index: 1000;
 			background: #0F0;
 			position: absolute;
@@ -58,6 +61,7 @@
 			transform: rotate(8deg);
 		}
 		#Mask2 {
+			display: none;
 			z-index: 1000;
 			background: #0F0;
 			position: absolute;
@@ -101,44 +105,44 @@
 </body>
 <script>
 	//Right/Left/Up/Down are from bongocat's viewpoint!
-	let rpu = document.getElementById("RightPawUp");
-	let lpu = document.getElementById("LeftPawUp");
-	let rpd = document.getElementById("RightPawDown");
-	let lpd = document.getElementById("LeftPawDown");
+	var rpu = document.getElementById("RightPawUp");
+	var lpu = document.getElementById("LeftPawUp");
+	var rpd = document.getElementById("RightPawDown");
+	var lpd = document.getElementById("LeftPawDown");
 
 	//Canvas things
-	let rpdctx = rpd.getContext("2d");
-	let lpdctx = lpd.getContext("2d");
+	var rpdctx = rpd.getContext("2d");
+	var lpdctx = lpd.getContext("2d");
 
 	//Stick
-	let StickNeutral = document.getElementById("StickNeutral");
-	let StickUp = document.getElementById("StickUp");
-	let StickDown = document.getElementById("StickDown");
-	let StickLeft = document.getElementById("StickLeft");
-	let StickRight = document.getElementById("StickRight");
-	let StickUpRight = document.getElementById("StickUpRight");
-	let StickUpLeft = document.getElementById("StickUpLeft");
-	let StickDownLeft = document.getElementById("StickDownLeft");
-	let StickDownRight = document.getElementById("StickDownRight");
+	var StickNeutral = document.getElementById("StickNeutral");
+	var StickUp = document.getElementById("StickUp");
+	var StickDown = document.getElementById("StickDown");
+	var StickLeft = document.getElementById("StickLeft");
+	var StickRight = document.getElementById("StickRight");
+	var StickUpRight = document.getElementById("StickUpRight");
+	var StickUpLeft = document.getElementById("StickUpLeft");
+	var StickDownLeft = document.getElementById("StickDownLeft");
+	var StickDownRight = document.getElementById("StickDownRight");
 
 	//Buttons
-	let Button1 = document.getElementById("Button1");
-	let Button2 = document.getElementById("Button2");
-	let Button3 = document.getElementById("Button3");
-	let Button4 = document.getElementById("Button4");
-	let Button5 = document.getElementById("Button5");
-	let Button6 = document.getElementById("Button6");
+	var Button1 = document.getElementById("Button1");
+	var Button2 = document.getElementById("Button2");
+	var Button3 = document.getElementById("Button3");
+	var Button4 = document.getElementById("Button4");
+	var Button5 = document.getElementById("Button5");
+	var Button6 = document.getElementById("Button6");
 
 	//Extra
-	let Smoke = document.getElementById("Smoke");
-	let SmokeTimeout = 2000;
-	let SmokeTimer = null;
+	var Smoke = document.getElementById("Smoke");
+	var SmokeTimeout = 2000;
+	var SmokeTimer = null;
 
 	//Gamepads
-	let connected = null;
-	let buttons = {};
+	var connected = null;
+	var buttons = {};
 
-	let pawCurves = {
+	var pawCurves = {
 		//Right hand
 		0: [110,190, 310,310, 220,160],
 		1: [110,190, 180,290, 220,160],
@@ -160,17 +164,17 @@
 		"dl": [320,260, 410,270, 465,200],
 	}
 
-	let RPSpeed = 0.7;
-	let RPReleaseTimeout = 50;
-	let RPReleaseTimer = null;
-	let currentRPCurve = null;
-	let currentRPCurveTarget = null;
+	var RPSpeed = 0.7;
+	var RPReleaseTimeout = 0;
+	var RPReleaseTimer = null;
+	var currentRPCurve = null;
+	var currentRPCurveTarget = null;
 
-	let LPSpeed = 0.7;
-	let LPReleaseTimeout = 1000;
-	let LPReleaseTimer = null;
-	let currentLPCurve = null;
-	let currentLPCurveTarget = null;
+	var LPSpeed = 0.7;
+	var LPReleaseTimeout = 2000;
+	var LPReleaseTimer = null;
+	var currentLPCurve = null;
+	var currentLPCurveTarget = null;
 
 	window.addEventListener("gamepadconnected", function(e) {
 		connected = window.navigator.getGamepads()[e.gamepad.index];
@@ -200,7 +204,6 @@
 	requestAnimationFrame(pollGamepadButtons);
 
 	function selectSmokeState() {
-		console.log(buttons.map((e,i) => i+":"+e.pressed));
 		if(buttons[4].pressed) {
 			Smoke.style.opacity = 1;
 			if(SmokeTimer) {
@@ -209,7 +212,7 @@
 			}
 		} else {
 			if(!SmokeTimer) {
-				SmokeTimer = setTimeout(() => {
+				SmokeTimer = setTimeout(function() {
 					Smoke.style.opacity = 0;
 				}, SmokeTimeout);
 			}
@@ -222,7 +225,7 @@
 			return;
 		}
 
-		for(let i = 0; i < currentRPCurve.length; i++) {
+		for(var i = 0; i < currentRPCurve.length; i++) {
 			currentRPCurve[i] = currentRPCurve[i] + (currentRPCurveTarget[i] - currentRPCurve[i]) * RPSpeed;
 		}
 	}
@@ -233,7 +236,7 @@
 			return;
 		}
 
-		for(let i = 0; i < currentLPCurve.length; i++) {
+		for(var i = 0; i < currentLPCurve.length; i++) {
 			currentLPCurve[i] = currentLPCurve[i] + (currentLPCurveTarget[i] - currentLPCurve[i]) * LPSpeed;
 		}
 	}
@@ -278,7 +281,7 @@
 		Button5.style.display = "none";
 		Button6.style.display = "none";
 
-		let pressed = false;
+		var pressed = false;
 		if(buttons[0].pressed) {
 			Button4.style.display = "block";
 		}
@@ -300,42 +303,42 @@
 	}
 
 	function selectRPTarget() {
-		let countPressed = 0;
-		let arraySum = [0,0, 0,0, 0,0];
+		var countPressed = 0;
+		var arraySum = [0,0, 0,0, 0,0];
 
 		//Sum bezier curves
 		if(buttons[0].pressed) {
-			for(let i = 0; i < arraySum.length; i++) {
+			for(var i = 0; i < arraySum.length; i++) {
 				arraySum[i] += pawCurves[0][i];
 			}
 			countPressed++;
 		}
 		if(buttons[1].pressed) {
-			for(let i = 0; i < arraySum.length; i++) {
+			for(var i = 0; i < arraySum.length; i++) {
 				arraySum[i] += pawCurves[1][i];
 			}
 			countPressed++;
 		}
 		if(buttons[7].pressed) {
-			for(let i = 0; i < arraySum.length; i++) {
+			for(var i = 0; i < arraySum.length; i++) {
 				arraySum[i] += pawCurves[7][i];
 			}
 			countPressed++;
 		}
 		if(buttons[2].pressed) {
-			for(let i = 0; i < arraySum.length; i++) {
+			for(var i = 0; i < arraySum.length; i++) {
 				arraySum[i] += pawCurves[2][i];
 			}
 			countPressed++;
 		}
 		if(buttons[3].pressed) {
-			for(let i = 0; i < arraySum.length; i++) {
+			for(var i = 0; i < arraySum.length; i++) {
 				arraySum[i] += pawCurves[3][i];
 			}
 			countPressed++;
 		}
 		if(buttons[5].pressed) {
-			for(let i = 0; i < arraySum.length; i++) {
+			for(var i = 0; i < arraySum.length; i++) {
 				arraySum[i] += pawCurves[5][i];
 			}
 			countPressed++;
@@ -343,7 +346,7 @@
 
 		//Average values and set minimum hold timer
 		if(countPressed > 0) {
-			for(let i = 0; i < arraySum.length; i++) {
+			for(var i = 0; i < arraySum.length; i++) {
 				arraySum[i] = Math.floor(arraySum[i] / countPressed);
 			}
 			currentRPCurveTarget = arraySum;
@@ -353,7 +356,7 @@
 			}
 		} else {
 			if(!RPReleaseTimer) {
-				RPReleaseTimer = setTimeout(() => {
+				RPReleaseTimer = setTimeout(function() {
 					currentRPCurve = null;
 					currentRPCurveTarget = null;
 				}, RPReleaseTimeout);
@@ -362,47 +365,47 @@
 	}
 
 	function selectLPTarget() {
-		let countPressed = 0;
-		let arraySum = [0,0, 0,0, 0,0];
+		var countPressed = 0;
+		var arraySum = [0,0, 0,0, 0,0];
 
 		//Sum bezier curves
 		if(buttons[12].pressed && buttons[14].pressed) {
-			for(let i = 0; i < arraySum.length; i++) {
+			for(var i = 0; i < arraySum.length; i++) {
 				arraySum[i] += pawCurves["ul"][i];
 			}
 			countPressed++;
 		} else if(buttons[12].pressed && buttons[15].pressed) {
-			for(let i = 0; i < arraySum.length; i++) {
+			for(var i = 0; i < arraySum.length; i++) {
 				arraySum[i] += pawCurves["ur"][i];
 			}
 			countPressed++;
 		} else if(buttons[13].pressed && buttons[14].pressed) {
-			for(let i = 0; i < arraySum.length; i++) {
+			for(var i = 0; i < arraySum.length; i++) {
 				arraySum[i] += pawCurves["dl"][i];
 			}
 			countPressed++;
 		} else if(buttons[13].pressed && buttons[15].pressed) {
-			for(let i = 0; i < arraySum.length; i++) {
+			for(var i = 0; i < arraySum.length; i++) {
 				arraySum[i] += pawCurves["dr"][i];
 			}
 			countPressed++;
 		} else if(buttons[12].pressed) {
-			for(let i = 0; i < arraySum.length; i++) {
+			for(var i = 0; i < arraySum.length; i++) {
 				arraySum[i] += pawCurves[12][i];
 			}
 			countPressed++;
 		} else if(buttons[13].pressed) {
-			for(let i = 0; i < arraySum.length; i++) {
+			for(var i = 0; i < arraySum.length; i++) {
 				arraySum[i] += pawCurves[13][i];
 			}
 			countPressed++;
 		} else if(buttons[14].pressed) {
-			for(let i = 0; i < arraySum.length; i++) {
+			for(var i = 0; i < arraySum.length; i++) {
 				arraySum[i] += pawCurves[14][i];
 			}
 			countPressed++;
 		} else if(buttons[15].pressed) {
-			for(let i = 0; i < arraySum.length; i++) {
+			for(var i = 0; i < arraySum.length; i++) {
 				arraySum[i] += pawCurves[15][i];
 			}
 			countPressed++;
@@ -413,14 +416,14 @@
 				if(currentLPCurveTarget) {
 					currentLPCurveTarget = pawCurves["n"]; //Set to Neutral
 				}
-				LPReleaseTimer = setTimeout(() => {
+				LPReleaseTimer = setTimeout(function() {
 					currentLPCurve = null;
 					currentLPCurveTarget = null;
 				}, LPReleaseTimeout);
 			}
 		} else {
 			//Average values, possible 2
-			for(let i = 0; i < arraySum.length; i++) {
+			for(var i = 0; i < arraySum.length; i++) {
 				arraySum[i] = Math.floor(arraySum[i] / countPressed);
 			}
 			currentLPCurveTarget = arraySum;
@@ -448,7 +451,8 @@
 		rpdctx.lineCap = "round";
 		rpdctx.beginPath();
 		rpdctx.moveTo(177, 104);
-		rpdctx.bezierCurveTo(...curve);
+		rpdctx.bezierCurveTo(curve[0], curve[1], curve[2], curve[3], curve[4], curve[5]);
+
 		rpdctx.fill();
 		rpdctx.stroke();
 	}
@@ -469,7 +473,7 @@
 		lpdctx.lineCap = "round";
 		lpdctx.beginPath();
 		lpdctx.moveTo(360,200);
-		lpdctx.bezierCurveTo(...curve);
+		lpdctx.bezierCurveTo(curve[0], curve[1], curve[2], curve[3], curve[4], curve[5]);
 
 		lpdctx.fill();
 		lpdctx.stroke();
