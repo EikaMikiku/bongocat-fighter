@@ -245,6 +245,9 @@
 			if(buttons[i].pressed) {
 				btnStr += i + ": pressed\t";
 			}
+			if(buttons[i].value && Math.abs(buttons[i].value) > 0.1) {
+				btnStr += i + ": moved by " + buttons[i].value + "\t";
+			}
 		}
 		if(btnStr.length > 0) {
 			console.log(btnStr);
