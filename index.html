@@ -208,22 +208,22 @@
 	// "buttons=u,d,l,r,1,2,3,4,5,6,smoke"
 	function readConfig() {
 		var config = window.location.search;
-		let gamepadMatch = config.match(/[?&]gamepad=(\d+)/);
-		let buttonsMatch = config.match(/[?&]buttons=([\d,]+)/);
-		if (gamepadMatch) {
+		var gamepadMatch = config.match(/[?&]gamepad=(\d+)/);
+		var buttonsMatch = config.match(/[?&]buttons=([\d,]+)/);
+		if(gamepadMatch) {
 			gamepadIdx = Number.parseInt(gamepadMatch[1]);
 		}
-		if (buttonsMatch) {
+		if(buttonsMatch) {
 			var buttonStrings = buttonsMatch[1].split(",");
-			if (buttonStrings.length == 11) {
+			if(buttonStrings.length == 11) {
 				upButtonIdx = Number.parseInt(buttonStrings[0], 10);
 				downButtonIdx = Number.parseInt(buttonStrings[1], 10);
 				leftButtonIdx = Number.parseInt(buttonStrings[2], 10);
 				rightButtonIdx = Number.parseInt(buttonStrings[3], 10);
-				smokeButtonIdx = Number.parseInt(buttonStrings[10], 10);
 				for(var i = 0; i < buttonIdx.length; i++) {
 					buttonIdx[i] = Number.parseInt(buttonStrings[i + 4], 10);
 				}
+				smokeButtonIdx = Number.parseInt(buttonStrings[10], 10);
 			}
 		}
 	}
@@ -234,19 +234,30 @@
 			return;
 		}
 		var gamepads = window.navigator.getGamepads();
-		if (gamepadIdx >= gamepads.length) {
+		if(gamepadIdx >= gamepads.length) {
 			return;
 		}
-		buttons = gamepads[gamepadIdx].buttons;
+
+		var axes = [];
+		var axeActiveThreshold = 0.3;
+		//Converting axes to buttons
+		for(var i = 0; i < gamepads[gamepadIdx].axes.length; i++) {
+			var val = gamepads[gamepadIdx].axes[i];
+			axes.push({
+				pressed: val > axeActiveThreshold ? true : false
+			});
+			axes.push({
+				pressed: val < -axeActiveThreshold ? true : false
+			});
+		};
+
+		buttons = gamepads[gamepadIdx].buttons.concat(axes);
 
 		//Logging which buttons are pressed in the console
 		var btnStr = "";
 		for(var i = 0; i < buttons.length; i++) {
 			if(buttons[i].pressed) {
 				btnStr += i + ": pressed\t";
-			}
-			if(buttons[i].value && Math.abs(buttons[i].value) > 0.1) {
-				btnStr += i + ": moved by " + buttons[i].value + "\t";
 			}
 		}
 		if(btnStr.length > 0) {
@@ -309,21 +320,26 @@
 	}
 
 	function getStickDirection() {
-		if(buttons[upButtonIdx].pressed && buttons[leftButtonIdx].pressed) {
+		var upPressed = buttons[upButtonIdx].pressed;
+		var downPressed = buttons[downButtonIdx].pressed;
+		var leftPressed = buttons[leftButtonIdx].pressed;
+		var rightPressed = buttons[rightButtonIdx].pressed;
+
+		if(upPressed && leftPressed) {
 			return STICK_UP_LEFT;
-		} else if(buttons[upButtonIdx].pressed && buttons[rightButtonIdx].pressed) {
+		} else if(upPressed && rightPressed) {
 			return STICK_UP_RIGHT;
-		} else if(buttons[downButtonIdx].pressed && buttons[leftButtonIdx].pressed) {
+		} else if(downPressed && leftPressed) {
 			return STICK_DOWN_LEFT;
-		} else if(buttons[downButtonIdx].pressed && buttons[rightButtonIdx].pressed) {
+		} else if(downPressed && rightPressed) {
 			return STICK_DOWN_RIGHT;
-		} else if(buttons[upButtonIdx].pressed) {
+		} else if(upPressed) {
 			return STICK_UP;
-		} else if(buttons[downButtonIdx].pressed) {
+		} else if(downPressed) {
 			return STICK_DOWN;
-		} else if(buttons[leftButtonIdx].pressed) {
+		} else if(leftPressed) {
 			return STICK_LEFT;
-		} else if(buttons[rightButtonIdx].pressed) {
+		} else if(rightPressed) {
 			return STICK_RIGHT;
 		} else {
 			return STICK_NEUTRAL;
@@ -382,7 +398,7 @@
 		var arraySum = [0,0, 0,0, 0,0];
 
 		//Sum bezier curves
-		if (direction != STICK_NEUTRAL) {
+		if(direction != STICK_NEUTRAL) {
 			for(var i = 0; i < arraySum.length; i++) {
 				arraySum[i] += pawCurvesStick[direction][i];
 			}
