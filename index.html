@@ -158,6 +158,8 @@
 	var buttonIdx = [2, 3, 5, 0, 1, 7];
 	var smokeButtonIdx = 4;
 
+	var axeActiveThreshold = 0.4;
+
 	//Right hand for the buttons
 	//(from bongocat's perspective, the buttons go
 	//from left to right, first top then bottom row)
@@ -210,6 +212,7 @@
 		var config = window.location.search;
 		var gamepadMatch = config.match(/[?&]gamepad=(\d+)/);
 		var buttonsMatch = config.match(/[?&]buttons=([\d,]+)/);
+		var deadzoneMatch = config.match(/[?&]deadzone=([\d\.]+)/);
 		if(gamepadMatch) {
 			gamepadIdx = Number.parseInt(gamepadMatch[1]);
 		}
@@ -226,6 +229,9 @@
 				smokeButtonIdx = Number.parseInt(buttonStrings[10], 10);
 			}
 		}
+		if(deadzoneMatch) {
+			axeActiveThreshold = Number.parseFloat(deadzoneMatch[1]);
+		}
 	}
 
 	function pollGamepadButtons() {
@@ -239,7 +245,6 @@
 		}
 
 		var axes = [];
-		var axeActiveThreshold = 0.3;
 		//Converting axes to buttons
 		for(var i = 0; i < gamepads[gamepadIdx].axes.length; i++) {
 			var val = gamepads[gamepadIdx].axes[i];
