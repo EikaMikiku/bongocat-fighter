@@ -10,7 +10,7 @@
 		body > div * {
 			position: absolute;
 		}
-		#Smoke {
+		#AP2S, #Smoke {
 			z-index: 1500;
 			opacity: 0;
 			transition: opacity 0.5s;
@@ -69,6 +69,7 @@
 	<div id="Mask2"></div>
 	<div id="Container">
 		<img id="Smoke" src="img/smoke.png"></img>
+		<img id="AP2S" src="img/ap2s.png"></img>
 		<img id="Background" src="img/bg.png"></img>
 		<img id="RightPawUp" src="img/rightup.png"></img>
 		<img id="LeftPawUp" src="img/leftup.png"></img>
@@ -144,10 +145,15 @@
 	var Smoke = document.getElementById("Smoke");
 	var SmokeTimeout = 2000;
 	var SmokeTimer = null;
+	var AP2S = document.getElementById("AP2S");
+	var currentAP2S = [];
+	var AP2SThreshold = 15;
+	var AP2STimer = null;
+	var AP2STimeout = 300; //Minimum shown for
 
 	//Gamepads
 	var connected = null;
-	var buttons = {};
+	var buttons = null;
 	var direction = STICK_NEUTRAL;
 
 	var gamepadIdx = 0;
@@ -203,16 +209,18 @@
 	window.addEventListener("gamepadconnected", function(e) {
 		connected = window.navigator.getGamepads()[e.gamepad.index];
 		console.log("Gamepad " + e.gamepad.index + " connected");
+		requestAnimationFrame(pollGamepadButtons);
 	});
 
-	// gamepad index can be configured in url with "gamepad=idx"
-	// buttons can be configured in url with comma-separated indices,
-	// "buttons=u,d,l,r,1,2,3,4,5,6,smoke"
+	//Gamepad index can be configured in url with "gamepad=idx"
+	//Buttons can be configured in url with comma-separated indices,
+	//"buttons=u,d,l,r,1,2,3,4,5,6,smoke"
 	function readConfig() {
 		var config = window.location.search;
 		var gamepadMatch = config.match(/[?&]gamepad=(\d+)/);
 		var buttonsMatch = config.match(/[?&]buttons=([\d,]+)/);
 		var deadzoneMatch = config.match(/[?&]deadzone=([\d\.]+)/);
+		var ap2sMatch = config.match(/[?&]ap2s=([\d]+)/);
 		if(gamepadMatch) {
 			gamepadIdx = Number.parseInt(gamepadMatch[1]);
 		}
@@ -231,6 +239,9 @@
 		}
 		if(deadzoneMatch) {
 			axeActiveThreshold = Number.parseFloat(deadzoneMatch[1]);
+		}
+		if(ap2sMatch) {
+			AP2SThreshold = Number.parseInt(ap2sMatch[1]);
 		}
 	}
 
@@ -256,18 +267,22 @@
 			});
 		};
 
-		buttons = gamepads[gamepadIdx].buttons.concat(axes);
+		var newButtons = gamepads[gamepadIdx].buttons.concat(axes);
 
-		//Logging which buttons are pressed in the console
+		//Has to compare buttons and newButtons to see what changed
+		selectAP2SState(newButtons);
+
+		buttons = newButtons;
+
+		//Logging debug data to console
 		var btnStr = "";
 		for(var i = 0; i < buttons.length; i++) {
 			if(buttons[i].pressed) {
 				btnStr += i + ": pressed\t";
 			}
 		}
-		if(btnStr.length > 0) {
-			console.log(btnStr);
-		}
+		btnStr = "AP2S: " + currentAP2S.length + " \t" + btnStr;
+		console.log(btnStr);
 
 		direction = getStickDirection();
 
@@ -282,9 +297,48 @@
 
 		drawRPD(currentRPCurve);
 		drawLPD(currentLPCurve);
+	}
+
+	function selectAP2SState(newButtons) {
+		if(!buttons) {
+			return 0;
+		}
+
+		var currentTime = Date.now();
+
+		//Filter out expired actions
+		currentAP2S = currentAP2S.filter(function(deadline) {
+			return deadline > Date.now();
+		});
+
+		//Add new actions
+		for(var i = 0; i < buttons.length; i++) {
+			//Just pressed it
+			if(!buttons[i].pressed && newButtons[i].pressed) {
+				if(i === upButtonIdx || i === downButtonIdx || i === leftButtonIdx || i === rightButtonIdx) {
+					//This is sligtly lowered, because very easily spammable
+					currentAP2S.push(currentTime + 1600);
+				} else if(buttonIdx.indexOf(i) >= 0) {
+					currentAP2S.push(currentTime + 2000);
+				}
+			}
+		}
+
+		if(currentAP2S.length >= AP2SThreshold) {
+			AP2S.style.opacity = 1;
+			if(AP2STimer) {
+				clearTimeout(AP2STimer);
+				AP2STimer = null;
+			}
+		} else {
+			if(!AP2STimer) {
+				AP2STimer = setTimeout(function() {
+					AP2S.style.opacity = 0;
+				}, AP2STimeout);
+			}
+		}
 
 	}
-	requestAnimationFrame(pollGamepadButtons);
 
 	function selectSmokeState() {
 		if(buttons[smokeButtonIdx].pressed) {
